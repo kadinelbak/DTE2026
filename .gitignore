@@ -1,0 +1,32 @@
+# KiCad backups and autosaves
+*-backups/
+*.bak
+*.bck
+*.kicad_pcb-bak
+*.kicad_sch-bak
+*-bak
+*~
+_autosave-*
+\#auto_saved_files#
+*.tmp
+*-save.pro
+*-save.kicad_pcb
+fp-info-cache
+
+# KiCad lock files and per-user local settings
+~*.lck
+*.lck
+*.kicad_prl
+*.sch-bak
+
+# Netlists, routing exports and fab output (regenerate from the project)
+*.net
+*.dsn
+*.ses
+gerbers/
+fab/
+production/
+
+# OS clutter
+.DS_Store
+Thumbs.db
