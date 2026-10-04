@@ -47,4 +47,4 @@ Arduino sketches in [`microcontroller_code/`](microcontroller_code/). Each sketc
 
 ## CAD
 
-SolidWorks files for the hydraulic right foot brace are in [`cad/hydraulic_brace/`](cad/hydraulic_brace/): the brace assembly (`hydraulic right foot brace.ASM`), the brace body, `BottomBraceHydraulics`, `InnerBore`, `OuterBore` and `Gasket`. Keep the file names as they are, because the assembly finds its parts by name.
+SolidWorks files for the hydraulic right foot brace are in [`cad/hydraulic_brace/`](cad/hydraulic_brace/): the assembly (`hydraulics brace Assem.SLDASM`), the brace body (`hydraulic right foot brace`), `bottom brace`, `BottomBraceHydraulics`, `InnerBore`, `OuterBore` and `Gasket`. Keep the file names as they are, because the assembly finds its parts by name.
