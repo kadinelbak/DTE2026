@@ -15,7 +15,7 @@ hardware/emg_board/
 ├── EMG_Board.pretty/       project footprint library (*.kicad_mod)
 ├── sym-lib-table           points to ${KIPRJMOD}/EMG_Board.kicad_sym
 ├── fp-lib-table            points to ${KIPRJMOD}/EMG_Board.pretty
-└── docs/                   schematic and PCB previews
+└── docs/                   schematic and PCB previews and screenshots
 ```
 
 The board runs from a 9 V battery through a switch, a reverse-polarity diode and a 7805 regulator into an ESP32 DevKit (38-pin). It carries:
@@ -27,3 +27,13 @@ The board runs from a 9 V battery through a switch, a reverse-polarity diode and
 
 ![Schematic](hardware/emg_board/docs/schematic_preview.png)
 ![PCB](hardware/emg_board/docs/pcb_preview.png)
+
+### KiCad screenshots
+
+PCB layout:
+
+![PCB layout in KiCad](hardware/emg_board/docs/pcb_screenshot.png)
+
+Schematic:
+
+![Schematic in KiCad](hardware/emg_board/docs/schematic_screenshot.png)
