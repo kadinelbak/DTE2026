@@ -30,3 +30,6 @@ production/
 # OS clutter
 .DS_Store
 Thumbs.db
+
+# Arduino WiFi credentials
+secrets.h
