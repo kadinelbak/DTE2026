@@ -43,6 +43,7 @@ Schematic:
 Arduino sketches in [`microcontroller_code/`](microcontroller_code/). Each sketch is in a folder with the same name, as the Arduino IDE expects.
 
 - [`WiFi/`](microcontroller_code/WiFi/): ESP32 button that sends a "Danger mode approached, increase stiffness?" alert to the phone and Apple Watch through ntfy.sh. The notification has Increase stiffness and Decrease stiffness buttons that change the stiffness level (0 to 5) on the ESP32, which confirms with LED flashes and a follow-up notification. Before building, copy `secrets.example.h` to `secrets.h` and put your WiFi name and password in it. `secrets.h` is git-ignored so the password stays out of the repo.
+- [`EMG/`](microcontroller_code/EMG/): reads the EMG signal on A3 and prints the raw value over serial at 9600 baud.
 - [`RotationalDrive/`](microcontroller_code/RotationalDrive/): reads the outside stretch sensor on A1, zeroes at neutral, and lights a blue warning LED and a blinking red danger LED as the ankle rolls past the limits. Type an angle over serial to calibrate it to degrees (saved to EEPROM), or `z` to re-zero.
 
 ## CAD
