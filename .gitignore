@@ -33,3 +33,6 @@ Thumbs.db
 
 # Arduino WiFi credentials
 secrets.h
+
+# SolidWorks lock/temp files
+~$*

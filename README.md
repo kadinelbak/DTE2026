@@ -44,3 +44,7 @@ Arduino sketches in [`microcontroller_code/`](microcontroller_code/). Each sketc
 
 - [`WiFi/`](microcontroller_code/WiFi/): ESP32 button that sends a notification to the phone and Apple Watch through ntfy.sh, with LED feedback and LED commands sent back from the phone. Before building, copy `secrets.example.h` to `secrets.h` and put your WiFi name and password in it. `secrets.h` is git-ignored so the password stays out of the repo.
 - [`RotationalDrive/`](microcontroller_code/RotationalDrive/): reads the outside stretch sensor on A1, zeroes at neutral, and lights a blue warning LED and a blinking red danger LED as the ankle rolls past the limits. Type an angle over serial to calibrate it to degrees (saved to EEPROM), or `z` to re-zero.
+
+## CAD
+
+SolidWorks files for the hydraulic right foot brace are in [`cad/hydraulic_brace/`](cad/hydraulic_brace/): the brace assembly (`hydraulic right foot brace.ASM`), the brace body, `BottomBraceHydraulics`, `InnerBore`, `OuterBore` and `Gasket`. Keep the file names as they are, because the assembly finds its parts by name.
