@@ -53,6 +53,5 @@ SolidWorks files for the hydraulic right foot brace are in [`cad/hydraulic_brace
 ## Images
 
 - [`images/model/`](images/model/): SolidWorks render of the full brace assembly.
-- [`images/prototype/`](images/prototype/): photos of the prototype, including the EMG breadboard, the electrodes on the calf and the brace being worn.
 
 ![Brace model](images/model/FullAseem.png)
