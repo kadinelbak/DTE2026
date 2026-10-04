@@ -8,12 +8,15 @@
   Uses ntfy.sh (free, no account) over WiFi: install the "ntfy" app on your
   iPhone and subscribe to NTFY_TOPIC. iPhone notifications mirror to the Watch.
 
-  LEDs:
-    Yellow (STATUS_LED)  blinking = connecting to WiFi, solid = sending
-    Green  (OK_LED)      flashes once = notification sent,
-                         flashes N times = stiffness changed to level N
-    Red    (ERR_LED)     flashes 3x   = send failed (check WiFi / topic),
-                         flashes 1x   = stiffness already at max / min
+  LEDs show the stiffness level (one LED stays on):
+    Green  (OK_LED)      = low stiffness     (level 0-1)
+    Yellow (STATUS_LED)  = medium stiffness  (level 2-3)
+    Red    (ERR_LED)     = high stiffness    (level 4-5)
+  Other LED signals:
+    Yellow blinking      = connecting to WiFi, solid while sending
+    New level's LED      flashes 3x when the stiffness changes
+    Red flashes 3x       = send failed (check WiFi / topic)
+    Current LED flashes 1x when stiffness is already at max / min
 
   Wiring (resistors are 220-330 ohm):
     Button:      one leg -> GPIO 13, other leg -> GND   (internal pull-up, no resistor needed)
@@ -112,13 +115,29 @@ void connectWiFi() {
   }
 }
  
-// Change the stiffness by +1 or -1 and apply it.
+// Which LED shows the current stiffness: green = low, yellow = medium, red = high.
+int stiffnessLed() {
+  if (stiffness <= 1) return OK_LED;
+  if (stiffness <= 3) return STATUS_LED;
+  return ERR_LED;
+}
+
+// Turns on only the LED for the current stiffness.
+void showStiffness() {
+  digitalWrite(OK_LED, LOW);
+  digitalWrite(STATUS_LED, LOW);
+  digitalWrite(ERR_LED, LOW);
+  digitalWrite(stiffnessLed(), HIGH);
+}
+
+// Sets a new stiffness level and shows it on the LEDs.
 // This is where the damper / actuator output goes once it is wired up
 // (e.g. set the MR coil PWM duty from the level).
 void setStiffness(int level) {
   stiffness = level;
   Serial.printf("Stiffness now %d/%d\n", stiffness, MAX_STIFFNESS);
-  if (stiffness > 0) flash(OK_LED, stiffness, 150);
+  showStiffness();
+  flash(stiffnessLed(), 3, 150);   // flash the new colour so the change is obvious
 }
 
 // Sends a notification. withStiffnessButtons adds the increase / decrease buttons.
@@ -167,26 +186,20 @@ void handleCommand(String cmd) {
   if (cmd == "up" || cmd == "down") {
     int target = stiffness + (cmd == "up" ? 1 : -1);
     if (target < 0 || target > MAX_STIFFNESS) {
-      flash(ERR_LED, 1, 300);
+      flash(stiffnessLed(), 1, 300);
       sendNotification("Stiffness unchanged",
                        String("Already at ") + (target < 0 ? "minimum" : "maximum") +
                        " (" + stiffness + "/" + MAX_STIFFNESS + ")",
                        "default", "warning", true);
+      showStiffness();
       return;
     }
     setStiffness(target);
     sendNotification(cmd == "up" ? "Stiffness increased" : "Stiffness decreased",
                      String("Stiffness now ") + stiffness + "/" + MAX_STIFFNESS,
                      "default", cmd == "up" ? "arrow_up" : "arrow_down", true);
-    return;
+    showStiffness();   // sending blinks the yellow LED, so put the stiffness colour back
   }
- 
-  if (cmd == "on")         digitalWrite(OK_LED, HIGH);
-  else if (cmd == "off")   digitalWrite(OK_LED, LOW);
-  else if (cmd == "blink") flash(OK_LED, 5, 150);
-  else                     flash(STATUS_LED, 2, 150);   // unknown command: just acknowledge
- 
-  sendNotification("ESP32", "ESP32 got: " + cmd, "default", "robot", false);
 }
  
 // Asks ntfy for any new messages on the command topic.
@@ -232,6 +245,7 @@ void setup() {
   connectWiFi();
   if (WiFi.status() == WL_CONNECTED) flash(OK_LED, 2, 100);
   else flash(ERR_LED, 3, 150);
+  showStiffness();
 }
  
 void loop() {
@@ -250,10 +264,11 @@ void loop() {
       String msg = String("Danger mode approached. Increase stiffness? (now ") +
                    stiffness + "/" + MAX_STIFFNESS + ")";
       if (sendNotification("Danger mode approached", msg, "urgent", "warning", true)) {
-        flash(OK_LED, 1, 400);
+        flash(stiffnessLed(), 1, 400);
       } else {
         flash(ERR_LED, 3, 150);
       }
+      showStiffness();
     }
   }
  
