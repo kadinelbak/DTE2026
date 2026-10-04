@@ -1,14 +1,19 @@
 /*
-  ESP32 button -> Apple Watch notification (with LED feedback)
-  ------------------------------------------------------------
-  Press the button and your Apple Watch buzzes with a notification.
+  ESP32 button -> Apple Watch "danger mode" alert with stiffness control
+  ----------------------------------------------------------------------
+  Press the button and your Apple Watch buzzes with "Danger mode approached"
+  and asks whether to increase stiffness. The notification has two buttons,
+  "Increase stiffness" and "Decrease stiffness", which send a command back to
+  the ESP32 and change the stiffness level (0 to MAX_STIFFNESS).
   Uses ntfy.sh (free, no account) over WiFi: install the "ntfy" app on your
   iPhone and subscribe to NTFY_TOPIC. iPhone notifications mirror to the Watch.
 
   LEDs:
     Yellow (STATUS_LED)  blinking = connecting to WiFi, solid = sending
-    Green  (OK_LED)      flashes once = notification sent
-    Red    (ERR_LED)     flashes 3x   = send failed (check WiFi / topic)
+    Green  (OK_LED)      flashes once = notification sent,
+                         flashes N times = stiffness changed to level N
+    Red    (ERR_LED)     flashes 3x   = send failed (check WiFi / topic),
+                         flashes 1x   = stiffness already at max / min
 
   Wiring (resistors are 220-330 ohm):
     Button:      one leg -> GPIO 13, other leg -> GND   (internal pull-up, no resistor needed)
@@ -37,8 +42,11 @@ const char *NTFY_CMD_TOPIC = "dte-esp32-change-me-8f3k2-cmd";  // phone -> ESP32
 #define DEBOUNCE_MS 50
 #define COOLDOWN_MS 2000   // ignore presses for 2 s after sending (ntfy rate-limits spam)
 #define POLL_MS     3000   // how often to check for commands from the phone
+#define MAX_STIFFNESS 5    // stiffness levels go from 0 (softest) to this
+#define START_STIFFNESS 2
  
 int pressCount = 0;
+int stiffness = START_STIFFNESS;
 int lastReading = HIGH;
 int buttonState = HIGH;
 unsigned long lastChange = 0;
@@ -104,7 +112,18 @@ void connectWiFi() {
   }
 }
  
-bool sendNotification(const String &title, const String &message) {
+// Change the stiffness by +1 or -1 and apply it.
+// This is where the damper / actuator output goes once it is wired up
+// (e.g. set the MR coil PWM duty from the level).
+void setStiffness(int level) {
+  stiffness = level;
+  Serial.printf("Stiffness now %d/%d\n", stiffness, MAX_STIFFNESS);
+  if (stiffness > 0) flash(OK_LED, stiffness, 150);
+}
+
+// Sends a notification. withStiffnessButtons adds the increase / decrease buttons.
+bool sendNotification(const String &title, const String &message,
+                      const char *priority, const char *tags, bool withStiffnessButtons) {
   connectWiFi();
   if (WiFi.status() != WL_CONNECTED) return false;
  
@@ -114,12 +133,14 @@ bool sendNotification(const String &title, const String &message) {
   HTTPClient http;
   http.begin(client, String("https://ntfy.sh/") + NTFY_TOPIC);
   http.addHeader("Title", title);
-  http.addHeader("Priority", "high");  // stronger buzz on the watch
-  http.addHeader("Tags", "point_up");  // shows an emoji on the notification
-  // Buttons on the notification that send a command back to the ESP32.
-  String cmdUrl = String("https://ntfy.sh/") + NTFY_CMD_TOPIC;
-  http.addHeader("Actions", "http, LED on, " + cmdUrl + ", body=on, clear=true; "
-                            "http, LED off, " + cmdUrl + ", body=off, clear=true");
+  http.addHeader("Priority", priority);  // "urgent"/"high" give a stronger buzz on the watch
+  http.addHeader("Tags", tags);          // shows an emoji on the notification
+  if (withStiffnessButtons) {
+    // Buttons on the notification that send a command back to the ESP32.
+    String cmdUrl = String("https://ntfy.sh/") + NTFY_CMD_TOPIC;
+    http.addHeader("Actions", "http, Increase stiffness, " + cmdUrl + ", body=up, clear=true; "
+                              "http, Decrease stiffness, " + cmdUrl + ", body=down, clear=true");
+  }
   int code = http.POST(message);
   http.end();
   digitalWrite(STATUS_LED, LOW);
@@ -143,12 +164,29 @@ void handleCommand(String cmd) {
   cmd.toLowerCase();
   Serial.printf("Command from phone: \"%s\"\n", cmd.c_str());
  
+  if (cmd == "up" || cmd == "down") {
+    int target = stiffness + (cmd == "up" ? 1 : -1);
+    if (target < 0 || target > MAX_STIFFNESS) {
+      flash(ERR_LED, 1, 300);
+      sendNotification("Stiffness unchanged",
+                       String("Already at ") + (target < 0 ? "minimum" : "maximum") +
+                       " (" + stiffness + "/" + MAX_STIFFNESS + ")",
+                       "default", "warning", true);
+      return;
+    }
+    setStiffness(target);
+    sendNotification(cmd == "up" ? "Stiffness increased" : "Stiffness decreased",
+                     String("Stiffness now ") + stiffness + "/" + MAX_STIFFNESS,
+                     "default", cmd == "up" ? "arrow_up" : "arrow_down", true);
+    return;
+  }
+ 
   if (cmd == "on")         digitalWrite(OK_LED, HIGH);
   else if (cmd == "off")   digitalWrite(OK_LED, LOW);
   else if (cmd == "blink") flash(OK_LED, 5, 150);
   else                     flash(STATUS_LED, 2, 150);   // unknown command: just acknowledge
  
-  sendNotification("ESP32", "ESP32 got: " + cmd);
+  sendNotification("ESP32", "ESP32 got: " + cmd, "default", "robot", false);
 }
  
 // Asks ntfy for any new messages on the command topic.
@@ -209,7 +247,9 @@ void loop() {
       lastSent = millis();
       Serial.printf("Button pressed (#%d), sending...\n", pressCount);
  
-      if (sendNotification("Button pressed", "Press #" + String(pressCount))) {
+      String msg = String("Danger mode approached. Increase stiffness? (now ") +
+                   stiffness + "/" + MAX_STIFFNESS + ")";
+      if (sendNotification("Danger mode approached", msg, "urgent", "warning", true)) {
         flash(OK_LED, 1, 400);
       } else {
         flash(ERR_LED, 3, 150);
